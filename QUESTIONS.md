@@ -29,4 +29,5 @@
 - I made a commands array that has the commands I parsed, but I don't know what to do with them
 - I am reading up on executing in c
 - Looked through the `<unistd.h>` library and found execute functions.
-
+- Realized I needed for the commands and the c program to run simulaneously
+- Solution: Use fork() and execvp() in tandem to execute commands

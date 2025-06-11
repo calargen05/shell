@@ -1,6 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdio.h> // for input and output
+#include <stdlib.h> // for exit(), EXIT_SUCCESS, malloc(), etc.
+#include <string.h> // for strtok()
+#include <unistd.h> // for fork(), execvp(), etc.
+#include <sys/wait.h> // for wait()
+#include <stdbool.h> // for true, false
 
 // container function; contains all the other functions in it
 void shell_main();
@@ -14,13 +17,16 @@ ssize_t shell_input(char** in, size_t* len);
 // parses the input for a command and returns a list of tokens
 char** shell_parse(char* in, size_t buff);
 
+// executes the input in the args list
+void shell_execute(char** args);
+
 
 int main(int argc, char* argv[]) {
 
     do {
         shell_main();
     }
-    while(0);
+    while(true);
 
     return 0;
 }
@@ -37,16 +43,9 @@ void shell_main() {
 
     shell_print();
     num = shell_input(&input, &length);
+    input = strtok(input, "\n"); // gets rid of the newline character at the end of the input
     commands = shell_parse(input, length);
-
-    /* test
-    int n = 0;
-    while (commands[n] != NULL) {
-        printf("command%d: %s\n", n, commands[n]);
-        ++n;
-    }
-    */
-    
+    shell_execute(commands);
 
     // free the buffer
     free(input);
@@ -58,7 +57,6 @@ void shell_print() {
 }
 
 ssize_t shell_input(char** in, size_t* len) {
-    // TODO: figure out how to check for buffer overflow
     return getline(in, len, stdin);
 }
 
@@ -74,10 +72,37 @@ char** shell_parse(char* in, size_t buff) {
         exit(EXIT_FAILURE);
     }
 
+    if (token == "exit") {
+        printf("Successfully Exited\n");
+        exit(EXIT_SUCCESS);
+    }
+
     while (token != NULL) {
         tokens[n] = token; // append the token to tokens
         ++n; // iterate n
         token = strtok(NULL, " "); // get next token
     }
     return tokens;
+}
+
+void shell_execute(char** args) {
+    // TODO: make function and comment for clarity
+    // add code here
+    pid_t pid = fork(); // process id; allows for this c program and the user-inputted command to run simultaneously
+
+    if (pid < 0) {
+        perror("Error: couldn't fork");
+        exit(EXIT_FAILURE);
+    }
+    else if (pid == 0) {
+        // child process    
+        if (execvp(args[0], args) == -1) {
+            perror("execution failed");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else { 
+        wait(NULL);
+    }
+
 }

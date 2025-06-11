@@ -6,20 +6,20 @@ Build a minimal shell in C that supports basic commands.
 ## Planned Features
 - [x] Read user input
 - [x] Parse input
-- [ ] Execute commands
-- [ ] Wait for child processes
+- [x] Execute commands
+- [x] Wait for child processes
 
 ## Architechture
 ### General Formatting
 - Function that contains all other functions in the input loop for cleanliness
 
 ### Input Loop
-- Using `getline()` for dynamic input
+- Using `getline`()` for dynamic input
 - Prompts: `user@domain ~> ` via a function
 - Parsed using `strtok()` into `commands` array
 
 ## Command Execution
-- Using `execv()` and `fork()` for executing commands
+- Using `execvp()` and `fork()` for executing commands
 - Using `wait()` to let child processes execute
 
 
