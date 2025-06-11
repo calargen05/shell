@@ -16,7 +16,7 @@ Build a minimal shell in C that supports basic commands.
 ### Input Loop
 - Using `getline()` for dynamic input
 - Prompts: `user@domain ~> ` via a function
-- Parsed using ? into `argv[]` array
+- Parsed using `strtok()` into `argv[]` array
 
 
 Currently lightweight, but I plan on making the shell more robust as I learn about c and its intricacies.

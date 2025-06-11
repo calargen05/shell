@@ -2,38 +2,62 @@
 #include <stdlib.h>
 
 // container function; contains all the other functions in it
-void shell_main() {
-    // add code for shell function here
-    shell_print();
-}
+void shell_main();
 
 // prints the shell statement
+void shell_print();
+
+// get the user input and return it
+ssize_t shell_input(char** in, size_t* len);
+
+
+/* TODO: figure out what datatype this function should be
+ * 
+   parses the input
+datatype shell_parse();
+*/
+
+int main(int argc, char* argv[]) {
+
+    do {
+        shell_main();
+    }
+    while(0);
+
+    return 0;
+}
+
+void shell_main() {
+    // add code for shell function here
+
+    //variables
+    ssize_t num; // input from the user
+    char* input = NULL; // input from the user (pointer to the buffer)
+    size_t length = 0; // length of the buffer
+
+    shell_print();
+    num = shell_input(&input, &length);
+
+    // test
+    printf("inputted string: %s\nnumber of characters inputted: %zu\nlength of the buffer: %zd\n", input, num, length);
+
+
+    // free the buffer
+    free(input);
+}
+
 void shell_print() {
     printf("user@domain ~> ");
 }
 
-/*
-// get the user input and return it
-char* shell_input(char[] input) {
+ssize_t shell_input(char** in, size_t* len) {
     // TODO: figure out how to check for buffer overflow
-    scanf("%s", input);
-    return input;
+    return getline(in, len, stdin);
 }
-*/
 
-/* TODO: figure out what datatype this function should be
- * 
-// parses the input
+/*
 datatype shell_parse() {
-    // add code for shell
+    add code for shell here
+
 }
 */
-
-int main(int argc, char* argv[]) {
-    // while loop to
-    while (argv != "exit") {
-        shell_main();
-    }
-
-    return 0;
-}

@@ -4,10 +4,12 @@
 ### Question: How will I make my program link to the system?
 - Had trouble trying to ponder on what I would do
 - I'm reading up on how this all works currently
+- Solution: use the `<unistd.h>` library for functions that interact with the system
 
 ### Question: How should I check for buffer overflow?
 - common edge case that made me wonder
 - I think that I'll make a buffer size variable to add a bound to the buffer
+- Solution: use the `getline()` function dynamically resize the buffer
 
 ### Question: What data type will my parser return?
 - made me lost while I was thinking about it
