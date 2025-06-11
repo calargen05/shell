@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // container function; contains all the other functions in it
 void shell_main();
@@ -10,12 +11,9 @@ void shell_print();
 // get the user input and return it
 ssize_t shell_input(char** in, size_t* len);
 
+// parses the input for a command and returns a list of tokens
+char** shell_parse(char* in, size_t buff);
 
-/* TODO: figure out what datatype this function should be
- * 
-   parses the input
-datatype shell_parse();
-*/
 
 int main(int argc, char* argv[]) {
 
@@ -34,16 +32,25 @@ void shell_main() {
     ssize_t num; // input from the user
     char* input = NULL; // input from the user (pointer to the buffer)
     size_t length = 0; // length of the buffer
+    
+    char** commands; // command to execute
 
     shell_print();
     num = shell_input(&input, &length);
+    commands = shell_parse(input, length);
 
-    // test
-    printf("inputted string: %s\nnumber of characters inputted: %zu\nlength of the buffer: %zd\n", input, num, length);
-
+    /* test
+    int n = 0;
+    while (commands[n] != NULL) {
+        printf("command%d: %s\n", n, commands[n]);
+        ++n;
+    }
+    */
+    
 
     // free the buffer
     free(input);
+    free(commands);
 }
 
 void shell_print() {
@@ -55,9 +62,22 @@ ssize_t shell_input(char** in, size_t* len) {
     return getline(in, len, stdin);
 }
 
-/*
-datatype shell_parse() {
-    add code for shell here
 
+char** shell_parse(char* in, size_t buff) {
+    // vars
+    char* token = strtok(in, " "); // tokens for tokenizing the input
+    char** tokens = malloc(buff*sizeof(char*)); // list of tokens
+    int n=0; // num of tokens; used to index 'tokens'
+
+    if (!token) {
+        perror("Error: couldn't tokenize input");
+        exit(EXIT_FAILURE);
+    }
+
+    while (token != NULL) {
+        tokens[n] = token; // append the token to tokens
+        ++n; // iterate n
+        token = strtok(NULL, " "); // get next token
+    }
+    return tokens;
 }
-*/
