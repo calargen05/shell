@@ -38,4 +38,4 @@
 - I used the `chdir()` function in the child process of `fork()` and put it in an if statement. Got some funky output; It was showing that the function was successful, but nothing was changing
 - I realized that the code I wrote was exiting the child process before `chdir()` could run. Changed it, but the directory still wasn't changing
 - Realized that the `execvp()` function was running because the while the whole process for finding the path of the directory, and changing the directory was in an if statement, the `execvp()` function wasn't in an else statement. Therefore, `execvp()` would run regardless if the command was `cd`
-Solution: Use if-else (else-if as needed) for various functions to limit overlapping and unknown behavior
+- Solution: Use if-else (else-if as needed) for various functions to limit overlapping and unknown behavior
