@@ -3,7 +3,6 @@
 #include <string.h> // for strtok()
 #include <unistd.h> // for fork(), execvp(), etc.
 #include <sys/wait.h> // for wait()
-#include <stdbool.h> // for true, false
 
 // container function; contains all the other functions in it
 void shell_main();
@@ -18,7 +17,7 @@ ssize_t shell_input(char** in, size_t* len);
 char** shell_parse(char* in, size_t buff);
 
 // executes the input in the args list
-void shell_execute(char** args);
+void shell_execute(char** args, char* in);
 
 
 int main(int argc, char* argv[]) {
@@ -26,7 +25,7 @@ int main(int argc, char* argv[]) {
     do {
         shell_main();
     }
-    while(true);
+    while(1);
 
     return 0;
 }
@@ -45,7 +44,7 @@ void shell_main() {
     num = shell_input(&input, &length);
     input = strtok(input, "\n"); // gets rid of the newline character at the end of the input
     commands = shell_parse(input, length);
-    shell_execute(commands);
+    shell_execute(commands, input);
 
     // free the buffer
     free(input);
@@ -69,12 +68,8 @@ char** shell_parse(char* in, size_t buff) {
 
     if (!token) {
         perror("Error: couldn't tokenize input");
+        free(tokens); free(in);
         exit(EXIT_FAILURE);
-    }
-
-    if (token == "exit") {
-        printf("Successfully Exited\n");
-        exit(EXIT_SUCCESS);
     }
 
     while (token != NULL) {
@@ -82,26 +77,59 @@ char** shell_parse(char* in, size_t buff) {
         ++n; // iterate n
         token = strtok(NULL, " "); // get next token
     }
+    tokens[n] = NULL; // null terminaton for the execution function below
     return tokens;
 }
 
-void shell_execute(char** args) {
+void shell_execute(char** args, char* in) {
     // TODO: make function and comment for clarity
-    // add code here
+    
+    // exits if the user enters "exit" as their command
+    if (strcmp(args[0], "exit") == 0) {
+        free(args); free(in);
+        exit(EXIT_SUCCESS);
+    }
+
     pid_t pid = fork(); // process id; allows for this c program and the user-inputted command to run simultaneously
 
+    // checks for errors in forking
     if (pid < 0) {
-        perror("Error: couldn't fork");
+        perror("fork");
         exit(EXIT_FAILURE);
     }
     else if (pid == 0) {
-        // child process    
-        if (execvp(args[0], args) == -1) {
-            perror("execution failed");
+        // child process;
+        // check if the command entered is 'cd'
+        if (strcmp(args[0], "cd") == 0) {
+            // variable to get the status of chdir()
+            int changed_dir;
+            // loop through the args array and find the path
+            int n = 1;
+            while(args[n] != NULL) {
+                if (args[n][0] != '-')
+                    break;
+                else
+                    n++;
+            }
+            // debugging print statement
+            printf("%s\n", args[n]);
+            changed_dir = chdir(args[n]);
+            // checks if chdir() failed
+            if (changed_dir == -1) {
+                perror("chdir");
+                exit(EXIT_FAILURE);
+            }
+            if (changed_dir == 0)
+                printf("directory was changed to: %s\n", args[n]);
+        }
+        else { 
+            execvp(args[0], args);
+            perror("execvp"); // prints if execvp fails
             exit(EXIT_FAILURE);
         }
     }
-    else { 
+    else {
+        // parent process; waits for the child process to finish
         wait(NULL);
     }
 
