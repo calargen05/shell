@@ -3,12 +3,15 @@
 #include <string.h> // for strtok()
 #include <unistd.h> // for fork(), execvp(), etc.
 #include <sys/wait.h> // for wait()
+#define CWD_BUFFSIZE 4096
+
+// ** NOTES AT THE BOTTOM **
 
 // container function; contains all the other functions in it
 void shell_main();
 
 // prints the shell statement
-void shell_print();
+void shell_print(char** curr);
 
 // get the user input and return it
 ssize_t shell_input(char** in, size_t* len);
@@ -39,8 +42,9 @@ void shell_main() {
     size_t length = 0; // length of the buffer
     
     char** commands; // command to execute
+    char* cwd; // current working directory
 
-    shell_print();
+    shell_print(&cwd);
     num = shell_input(&input, &length);
     input = strtok(input, "\n"); // gets rid of the newline character at the end of the input
     commands = shell_parse(input, length);
@@ -49,10 +53,15 @@ void shell_main() {
     // free the buffer
     free(input);
     free(commands);
+    free(cwd);
 }
 
-void shell_print() {
-    printf("user@domain ~> ");
+void shell_print(char** curr) {
+    // TODO: get the current working directory and add it to the print statement at the end of the function
+    *curr = malloc(CWD_BUFFSIZE);
+    getcwd(*curr, CWD_BUFFSIZE);
+
+    printf("user@domain %s~> ", *curr);
 }
 
 ssize_t shell_input(char** in, size_t* len) {
@@ -82,12 +91,31 @@ char** shell_parse(char* in, size_t buff) {
 }
 
 void shell_execute(char** args, char* in) {
-    // TODO: make function and comment for clarity
-    
     // exits if the user enters "exit" as their command
     if (strcmp(args[0], "exit") == 0) {
-        free(args); free(in);
         exit(EXIT_SUCCESS);
+    }
+    
+    // checks if the user entered
+    if (strcmp(args[0], "cd") == 0) {
+        // variable to get the status of chdir()
+        int changed_dir;
+            // loop through the args array and find the path
+        int n = 1;
+        while (args[n] != NULL) {
+            if (args[n][0] != '-')
+                break;
+            else
+                n++;
+        }
+        // debugging print statement
+        changed_dir = chdir(args[n]);
+        // checks if chdir() failed
+        if (changed_dir == -1) {
+            perror("chdir");
+            exit(EXIT_FAILURE);
+        }
+        return;
     }
 
     pid_t pid = fork(); // process id; allows for this c program and the user-inputted command to run simultaneously
@@ -97,36 +125,12 @@ void shell_execute(char** args, char* in) {
         perror("fork");
         exit(EXIT_FAILURE);
     }
-    else if (pid == 0) {
+    // checks to see if there is a command other than 'cd'
+    else if (pid == 0 && strcmp(args[0], "cd") != 0) {
         // child process;
-        // check if the command entered is 'cd'
-        if (strcmp(args[0], "cd") == 0) {
-            // variable to get the status of chdir()
-            int changed_dir;
-            // loop through the args array and find the path
-            int n = 1;
-            while(args[n] != NULL) {
-                if (args[n][0] != '-')
-                    break;
-                else
-                    n++;
-            }
-            // debugging print statement
-            printf("%s\n", args[n]);
-            changed_dir = chdir(args[n]);
-            // checks if chdir() failed
-            if (changed_dir == -1) {
-                perror("chdir");
-                exit(EXIT_FAILURE);
-            }
-            if (changed_dir == 0)
-                printf("directory was changed to: %s\n", args[n]);
-        }
-        else { 
-            execvp(args[0], args);
-            perror("execvp"); // prints if execvp fails
-            exit(EXIT_FAILURE);
-        }
+        execvp(args[0], args);
+        perror("execvp"); // prints if execvp fails
+        exit(EXIT_FAILURE);
     }
     else {
         // parent process; waits for the child process to finish
@@ -134,3 +138,12 @@ void shell_execute(char** args, char* in) {
     }
 
 }
+
+/* NOTES
+ *
+ * I moved the cd execution to before the fork so the command would actually work
+ * If I had left it there, the directory wouldn't change because it was a child process in this program. Child processes only affect the child, and the intention is for the command to change in the parent (the shell).
+ *
+ * I also found a double free (thanks to chatgpt for the assist). Needless to say, I got rid of it and implemented a safer approach to memory management by just freeing the memory in the shell_main() function.
+ *
+ * */

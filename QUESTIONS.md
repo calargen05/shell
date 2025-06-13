@@ -39,3 +39,8 @@
 - I realized that the code I wrote was exiting the child process before `chdir()` could run. Changed it, but the directory still wasn't changing
 - Realized that the `execvp()` function was running because the while the whole process for finding the path of the directory, and changing the directory was in an if statement, the `execvp()` function wasn't in an else statement. Therefore, `execvp()` would run regardless if the command was `cd`
 - Solution: Use if-else (else-if as needed) for various functions to limit overlapping and unknown behavior
+- ACTUAL SOLUTION: move `chdir()` to before `fork()` so the process can actually affect the parent process (the shell).
+
+### Question: How do i get the cd command in the shell to recognize '~' and for it to default to the user's home directory?
+- Thought that cd would automatically recognize those inputs, but I was mistaken
+- I think that I will need to make an if statement for those two cd commands
