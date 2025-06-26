@@ -3,6 +3,7 @@
 #include <string.h> // for strtok()
 #include <unistd.h> // for fork(), execvp(), etc.
 #include <sys/wait.h> // for wait()
+#include <stdbool.h>
 #define CWD_BUFFSIZE 4096
 
 // ** NOTES AT THE BOTTOM **
@@ -21,6 +22,12 @@ char** shell_parse(char* in, size_t buff);
 
 // executes the input in the args list
 void shell_execute(char** args, char* in);
+
+// checks the input commands for input/output redirection
+bool check_io(char** args);
+
+// executes the redirection command(s)
+void io_redirection(char** args);
 
 
 int main(int argc, char* argv[]) {
@@ -126,8 +133,13 @@ void shell_execute(char** args, char* in) {
         exit(EXIT_FAILURE);
     }
     // checks to see if there is a command other than 'cd'
-    else if (pid == 0 && strcmp(args[0], "cd") != 0) {
+    else if (pid == 0) {
         // child process;
+        
+        // check if the args contains i/o redirection
+        if (check_io(args)) {
+            // execute the commmands
+            // io_redirection(args);
         execvp(args[0], args);
         perror("execvp"); // prints if execvp fails
         exit(EXIT_FAILURE);
@@ -139,11 +151,32 @@ void shell_execute(char** args, char* in) {
 
 }
 
+bool check_io(char** args) {
+    // get the length of the args list
+    int n = 0;
+    while args[n] != NULL
+        ++n;
+
+    // check for i/o redirection
+    int i;
+    for (i = 0; i < n: i++) {
+        if (args[i] == "<" || args[i] == "<<" || args[i] == ">" || args[i] == ">>")
+            return true;
+    }
+    return false;
+}
+
+void io_redirection(char** args) {
+    // write this function
+}
+
 /* NOTES
  *
  * I moved the cd execution to before the fork so the command would actually work
  * If I had left it there, the directory wouldn't change because it was a child process in this program. Child processes only affect the child, and the intention is for the command to change in the parent (the shell).
  *
  * I also found a double free (thanks to chatgpt for the assist). Needless to say, I got rid of it and implemented a safer approach to memory management by just freeing the memory in the shell_main() function.
+ *
+ * CURRENT: I'm currently learning how to handle i/o redirection and ai is helping me learn without writing the code for me ;)
  *
  * */
