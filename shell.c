@@ -31,6 +31,9 @@ bool check_io(char** args);
 // executes the redirection command(s)
 void io_redirection(char** args);
 
+// allows for piping
+void piping(char** args);
+
 
 int main(int argc, char* argv[]) {
 
@@ -281,6 +284,11 @@ void io_redirection(char** args) {
     execvp(args[0],args);
     perror("execvp");
     _exit(1);
+}
+
+void piping(char** args) {
+    // add function content here
+
 }
 
 /* NOTES
