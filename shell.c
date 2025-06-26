@@ -3,7 +3,9 @@
 #include <string.h> // for strtok()
 #include <unistd.h> // for fork(), execvp(), etc.
 #include <sys/wait.h> // for wait()
-#include <stdbool.h>
+#include <stdbool.h> // for bool datatype, true, and false
+#include <fcntl.h> // for open() and its flags
+#include <sys/stat.h> // For the mode_t argument in open()
 #define CWD_BUFFSIZE 4096
 
 // ** NOTES AT THE BOTTOM **
@@ -139,10 +141,13 @@ void shell_execute(char** args, char* in) {
         // check if the args contains i/o redirection
         if (check_io(args)) {
             // execute the commmands
-            // io_redirection(args);
-        execvp(args[0], args);
-        perror("execvp"); // prints if execvp fails
-        exit(EXIT_FAILURE);
+            io_redirection(args);
+        }
+        else {
+            execvp(args[0], args);
+            perror("execvp"); // prints if execvp fails
+            exit(EXIT_FAILURE);
+        }
     }
     else {
         // parent process; waits for the child process to finish
@@ -154,20 +159,128 @@ void shell_execute(char** args, char* in) {
 bool check_io(char** args) {
     // get the length of the args list
     int n = 0;
-    while args[n] != NULL
+    while (args[n] != NULL) {
         ++n;
+    }
 
     // check for i/o redirection
     int i;
-    for (i = 0; i < n: i++) {
-        if (args[i] == "<" || args[i] == "<<" || args[i] == ">" || args[i] == ">>")
+    for (i = 0; i < n; i++) {
+        if (strcmp(args[i], "<") == 0 ||
+            strcmp(args[i], ">") == 0 ||
+            strcmp(args[i], ">>") == 0
+            )
             return true;
     }
     return false;
 }
 
 void io_redirection(char** args) {
-    // write this function
+    // iteration var to loop through the args list
+    int i = 0;
+
+    while (args[i] != NULL) {
+        if (strcmp(args[i], "<") == 0) {
+            // check for missing filename
+            if (args[i+1] == NULL) {
+                fprintf(stderr, "shell: syntax error: missing file for input redirection\n");
+                _exit(1);
+            }
+            // args[i+1] has to be the file since < is args[i]
+            char* file_name = args[i+1];
+            // opens the file and returns an integer
+            int fd = open(file_name, O_RDONLY);
+            if (fd == -1) {
+                perror("open");
+                _exit(EXIT_FAILURE);
+            }
+            // duplicates the file and redirects input from stdin to the file
+            int duplicate = dup2(fd, 0);
+            if (duplicate == -1) {
+                perror("dup2");
+                _exit(EXIT_FAILURE);
+            }
+
+            close(fd);
+
+            int remove_iterable = i;
+            while (args[remove_iterable + 2] != NULL) {
+                args[remove_iterable] = args[remove_iterable + 2];
+                ++remove_iterable;
+            }
+            args[remove_iterable] = NULL;
+                
+        }
+
+        else if (strcmp(args[i], ">") == 0) {
+            // check for missing filename
+            if (args[i+1] == NULL) {
+                fprintf(stderr, "shell: syntax error: missing file for output redirection\n");
+                _exit(1);
+            }
+            // args[i+1] has to be the file since > is args[i]
+            char* file_name = args[i+1];
+            // opens the file and returns an integer
+            int fd = open(file_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd == -1) {
+                perror("open");
+                _exit(EXIT_FAILURE);
+            }
+            // duplicates the file and redirects output from stdout to the file
+            int duplicate = dup2(fd, 1);
+            if (duplicate == -1) {
+                perror("dup2");
+                _exit(EXIT_FAILURE);
+            }
+
+            close(fd);
+
+            int remove_iterable = i;
+            while (args[remove_iterable + 2] != NULL) {
+                args[remove_iterable] = args[remove_iterable + 2];
+                ++remove_iterable;
+            }
+            args[remove_iterable] = NULL; 
+        }
+        
+        else if (strcmp(args[i], ">>") == 0) {
+            // check for missing filename
+            if (args[i+1] == NULL) {
+                fprintf(stderr, "shell: syntax error: missing file for output redirection\n");
+                _exit(1);
+            }
+            // args[i+1] has to be the file since < is args[i]
+            char* file_name = args[i+1];
+            // opens the file and returns an integer
+            int fd = open(file_name, O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if (fd == -1) {
+                perror("open");
+                _exit(EXIT_FAILURE);
+            }
+            // duplicates the file and redirects input from stdin to the file
+            int duplicate = dup2(fd, 1);
+            if (duplicate == -1) {
+                perror("dup2");
+                _exit(EXIT_FAILURE);
+            }
+
+            close(fd);
+
+            int remove_iterable = i;
+            while (args[remove_iterable + 2] != NULL) {
+                args[remove_iterable] = args[remove_iterable + 2];
+                ++remove_iterable;
+            }
+            args[remove_iterable] = NULL;            
+        }
+        else {
+            // incase no i/o redirection string was found, just increment the loop by 1
+            ++i;
+        }
+    }
+    execvp(args[0],args);
+    perror("execvp");
+    _exit(1);
 }
 
 /* NOTES
