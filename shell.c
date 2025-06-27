@@ -58,6 +58,7 @@ void shell_main() {
 
     shell_print(&cwd);
     num = shell_input(&input, &length);
+    (void)num; // marks num as intentionally unused to suppress warning
     input = strtok(input, "\n"); // gets rid of the newline character at the end of the input
     commands = shell_parse(input, length);
     shell_execute(commands, input);
