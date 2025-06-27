@@ -23,7 +23,7 @@ ssize_t shell_input(char** in, size_t* len);
 char** shell_parse(char* in, size_t buff);
 
 // executes the input in the args list
-void shell_execute(char** args, char* in);
+void shell_execute(char** args, char* in, size_t buff);
 
 // checks the input commands for input/output redirection
 bool check_io(char** args);
@@ -31,8 +31,11 @@ bool check_io(char** args);
 // executes the redirection command(s)
 void io_redirection(char** args);
 
+// check the input commands for pipe redirection
+bool check_pipe(char** args);
+
 // allows for piping
-void piping(char** args);
+void piping(char** args, size_t buff);
 
 
 int main(int argc, char* argv[]) {
@@ -61,7 +64,7 @@ void shell_main() {
     (void)num; // marks num as intentionally unused to suppress warning
     input = strtok(input, "\n"); // gets rid of the newline character at the end of the input
     commands = shell_parse(input, length);
-    shell_execute(commands, input);
+    shell_execute(commands, input, length);
 
     // free the buffer
     free(input);
@@ -103,13 +106,19 @@ char** shell_parse(char* in, size_t buff) {
     return tokens;
 }
 
-void shell_execute(char** args, char* in) {
+void shell_execute(char** args, char* in, size_t buff) {
     // exits if the user enters "exit" as their command
     if (strcmp(args[0], "exit") == 0) {
         exit(EXIT_SUCCESS);
     }
     
-    // checks if the user entered
+    // checks for pipe command
+    if (check_pipe(args)) {
+        piping(args, buff);
+        return;
+    }
+    
+    // checks if the user entered cd
     if (strcmp(args[0], "cd") == 0) {
         // variable to get the status of chdir()
         int changed_dir;
@@ -131,7 +140,7 @@ void shell_execute(char** args, char* in) {
         return;
     }
 
-    pid_t pid = fork(); // process id; allows for this c program and the user-inputted command to run simultaneously
+    pid_t pid = fork(); // process id; fork() allows for this c program and the user-inputted command to run simultaneously
 
     // checks for errors in forking
     if (pid < 0) {
@@ -287,9 +296,122 @@ void io_redirection(char** args) {
     _exit(1);
 }
 
-void piping(char** args) {
-    // add function content here
+bool check_pipe(char** args) {
+    int n = 0;
+    while (args[n] != NULL) {
+        if (strcmp(args[n], "|") == 0)
+            return true;
+        ++n;
+    }
+    return false;
+}
 
+void piping(char** args, size_t buff) {
+    // add function content here
+    
+    // pipe file descriptor
+    int pipefd[2];
+    int pipe_out = pipe(pipefd); // pipe function to pipe output from one command to another
+    
+    // list of strings for the left side of the pipe
+    char** left = malloc(buff*sizeof(char*));
+    // list of strings for the right side of the pipe
+    char** right = malloc(buff*sizeof(char*));
+    
+    // loops to get the left and right lists
+    int i = 0; int left_i = 0; int right_i = 0;
+    while (strcmp(args[i], "|") != 0) {
+        left[left_i] = args[i];
+        ++left_i;
+        ++i;
+    }
+    left[left_i] = NULL; // null termination
+    
+    // advances i past the "|" string
+    if (args[i] != NULL && strcmp(args[i], "|") == 0)
+        i++;
+
+    // checks for missing command on the right side of the pipe
+    if (args[i] == NULL) {
+        fprintf(stderr, "shell: syntax error: missing command on right side of the pipe.");
+        exit(1);
+    }
+    while (args[i] != NULL) {
+        right[right_i] = args[i];
+        right_i++;
+        i++;
+    }
+    right[right_i] = NULL; // null termination
+
+
+
+    // error checking
+    if (pipe_out == -1) {
+        perror("pipe");
+        exit(1);
+    }
+    
+    // forks the process
+    pid_t p_id = fork();
+    
+    // error checking
+    if (p_id < 0) {
+        perror("fork");
+        exit(1);
+    }
+    // child process
+    if (p_id == 0) {
+        close(pipefd[0]); // closes read end of the pipe
+        int duplicate = dup2(pipefd[1], 1); // uses dup2() to redirect stdout to the write end of the pipe
+        
+        // error checking
+        if (duplicate == -1) {
+            perror("dup2");
+            _exit(1);
+        }
+        // closes the write end of the pipe
+        close(pipefd[1]);
+
+        execvp(left[0], left); // executes command
+        perror("execvp");
+        _exit(1);
+    }
+    else {
+        p_id = fork(); // second fork for read end of pipe
+        
+        // error checking
+        if (p_id < 0) {
+            perror("fork");
+            exit(1);
+        }
+        // child process
+        if (p_id == 0) {
+            close(pipefd[1]); // closes write end of the pipe
+            int duplicate = dup2(pipefd[0], 0); // uses dup2() to redirect stdin to the read end of the pipe
+
+            // error checking
+            if (duplicate == -1) {
+                perror("dup2");
+                _exit(1);
+            }
+            
+            // closes read end of the pipe
+            close(pipefd[0]);
+            execvp(right[0], right); // execute commands
+            perror("execvp");
+            _exit(1);
+        }
+        else {
+            // close both ends of the pipe
+            close(pipefd[0]);
+            close(pipefd[1]);
+            free(left); free(right);
+            
+            // two wait calls because the parent needs to wait for both children
+            wait(NULL);
+            wait(NULL);
+        }
+    }
 }
 
 /* NOTES

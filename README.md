@@ -34,7 +34,13 @@ A simple bash shell I made for the sake of learning C programming.
     ```bash
     make
     ```
-    This will generate an executable called `shell`.
+    This will generate an object file called `shell.o` and an executable called `shell`.
+
+3. **Clean the directory of compilation files:**
+    ```bash
+    make clean
+    ```
+    This will delete `shell.o` and `shell`.
 
 
 ## Usage
